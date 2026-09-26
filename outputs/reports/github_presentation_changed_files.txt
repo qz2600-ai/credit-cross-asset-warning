@@ -1,0 +1,19 @@
+LICENSE
+.gitignore
+README.md
+.github/workflows/tests.yml
+data/raw/.gitkeep
+data/interim/.gitkeep
+outputs/reports/github_presentation_verification.log
+
+Excluded from public package under .gitignore:
+data/raw/IEF.metadata.json
+data/raw/IEF.csv
+data/raw/HYG.metadata.json
+data/raw/SPY.metadata.json
+data/raw/LQD.csv
+data/raw/VIXCLS.csv
+data/raw/HYG.csv
+data/raw/VIXCLS.metadata.json
+data/raw/LQD.metadata.json
+data/raw/SPY.csv

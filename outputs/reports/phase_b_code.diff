@@ -1,0 +1,346 @@
+--- a/scripts/run_phase_b.py
++++ b/scripts/run_phase_b.py
+@@ -0,0 +1,72 @@
++from pathlib import Path
++import argparse, json, platform, sys, time
++from importlib.metadata import version, PackageNotFoundError
++import pandas as pd, yaml
++ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT/"src"))
++from credit_warning.data import load_cached_raw, audit_and_align, data_fingerprint
++from credit_warning.features import make_features, feature_dictionary, FEATURE_COLUMNS
++from credit_warning.labels import future_trough, initial_stress_cutoff, add_stress_label
++from credit_warning.splits import chronological_samples
++
++def main():
++    ap=argparse.ArgumentParser(); ap.add_argument("--config",required=True); args=ap.parse_args()
++    t0=time.time(); cfg=yaml.safe_load(Path(args.config).read_text())
++    raw=ROOT/"data"/"raw"; tabs=ROOT/"outputs"/"tables"; reps=ROOT/"outputs"/"reports"
++    tabs.mkdir(parents=True,exist_ok=True); reps.mkdir(parents=True,exist_ok=True)
++    etfs,vix=load_cached_raw(raw,cfg["assets"]["etfs"],cfg["assets"]["vix_series"])
++    audit,aligned,common_pct,represented,criteria=audit_and_align(etfs,vix,cfg["assets"]["etfs"],cfg["assets"]["vix_series"],
++        cfg["project"]["analysis_start"],cfg["project"]["analysis_end"])
++    if not all(criteria.values()): raise SystemExit("Phase A gate no longer passes; stop.")
++    counts=[("aligned_phase_a_rows",len(aligned))]
++    feats=make_features(aligned,cfg["assets"]["vix_series"]); counts.append(("feature_rows_before_complete_case_drop",len(feats)))
++    missing=feats.isna().sum().rename("missing_count").to_frame()
++    complete=feats.dropna(); counts.append(("rows_after_feature_complete_case_drop",len(complete)))
++    labels=future_trough(aligned["HYG"],cfg["target"]["horizon_days"]); counts.append(("label_rows_constructed",len(labels)))
++    frame=complete.join(labels,how="left")
++    counts.append(("complete_feature_rows_with_observable_10d_label",int(frame["label_end_date"].notna().sum())))
++    cutoff=initial_stress_cutoff(frame,cfg["periods"]["train_end"],cfg["target"]["training_quantile"])
++    frame=add_stress_label(frame,cutoff)
++    samples=chronological_samples(frame,cfg["periods"])
++    for n,d in samples.items(): counts.append((f"{n}_rows_after_boundary_exclusion",len(d)))
++    fd=feature_dictionary(); fd.to_csv(tabs/"feature_dictionary.csv",index=False)
++    missing.to_csv(tabs/"feature_missing_counts.csv")
++    stats=feats[FEATURE_COLUMNS].describe(percentiles=[.01,.05,.25,.5,.75,.95,.99]).T
++    stats.to_csv(tabs/"feature_summary_statistics.csv")
++    pd.DataFrame(counts,columns=["stage","row_count"]).to_csv(tabs/"phase_b_row_counts.csv",index=False)
++    rates=pd.DataFrame([{"period":n,"rows":len(d),"stress_labels":int(d["stress_label"].sum()),
++                         "stress_label_rate":float(d["stress_label"].mean()),
++                         "start":str(d.index.min().date()),"end":str(d.index.max().date())} for n,d in samples.items()])
++    rates.to_csv(tabs/"stress_label_rates.csv",index=False)
++    # Audit-only derived data; no model calculations.
++    frame.to_csv(tabs/"phase_b_features_labels.csv",index_label="date")
++    boundary=[]
++    specs={"training":(None,cfg["periods"]["train_end"]),
++           "validation":(cfg["periods"]["validation_start"],cfg["periods"]["validation_end"]),
++           "test":(cfg["periods"]["test_start"],cfg["periods"]["test_end"])}
++    for n,(start,end) in specs.items():
++        base=(frame.index<=pd.Timestamp(end))
++        if start: base &= frame.index>=pd.Timestamp(start)
++        crossing=base & frame["label_end_date"].notna() & (frame["label_end_date"]>pd.Timestamp(end))
++        boundary.append({"period":n,"boundary_crossing_rows_excluded":int(crossing.sum())})
++    pd.DataFrame(boundary).to_csv(tabs/"boundary_exclusions.csv",index=False)
++    lines=["# Phase B Feature and Label Audit","",
++      "**Phase A gate: PASS. Phase B completed. No models were constructed, fit, tuned, or evaluated.**","",
++      f"Configured analysis window remains {cfg['project']['analysis_start']} through {cfg['project']['analysis_end']}.",
++      f"Usable complete-feature date range: {complete.index.min().date()} through {complete.index.max().date()}.",
++      f"Numerical initial-training 10th-percentile stress cutoff: `{cutoff:.12f}`.","",
++      "## Row counts","",pd.DataFrame(counts,columns=["stage","row_count"]).to_markdown(index=False),"",
++      "## Missing values by feature","",missing.reset_index(names="feature").to_markdown(index=False),"",
++      "## Feature summary statistics","",stats.reset_index(names="feature").to_markdown(index=False),"",
++      "## Stress-label rates by chronological sample","",rates.to_markdown(index=False),"",
++      "## Label-horizon boundary exclusions","",pd.DataFrame(boundary).to_markdown(index=False),"",
++      "Boundary-crossing labels were excluded from each chronological sample by requiring `label_end_date <= period end`.",
++      "The stress cutoff was computed only from complete-feature initial-training rows with an observable 10-day label whose `label_end_date` is on or before 2016-12-31.",
++      "No feature was removed or selected based on outcomes, and no model performance was inspected."]
++    (reps/"phase_b_audit.md").write_text("\n".join(lines))
++    meta={"phase":"B","phase_a_gate_passed":True,"models_constructed":False,"stress_cutoff":cutoff,
++          "usable_feature_start":str(complete.index.min().date()),"usable_feature_end":str(complete.index.max().date()),
++          "sample_rows":{n:len(d) for n,d in samples.items()},"runtime_seconds":time.time()-t0,
++          "python":platform.python_version(),"configuration":cfg}
++    (reps/"phase_b_run_metadata.json").write_text(json.dumps(meta,indent=2))
++    print("PHASE B COMPLETE. No models constructed. Stopping after Phase B.")
++if __name__=="__main__": main()
+--- a/src/credit_warning/data.py
++++ b/src/credit_warning/data.py
+@@ -131,7 +131,11 @@
+         valid = s.dropna()
+         prices_like = col in etf_names or col == vix_series
+         # Extreme-return review flag: |daily log return| > 20%; flag only, not a gate criterion.
+-        lr = np.log(valid / valid.shift(1)) if prices_like else pd.Series(dtype=float)
++        if prices_like:
++            with np.errstate(divide="ignore", invalid="ignore"):
++                lr = np.log(valid / valid.shift(1))
++        else:
++            lr = pd.Series(dtype=float)
+         extreme = int((lr.abs() > 0.20).sum())
+         rows.append({
+             "series": col,
+--- a/src/credit_warning/features.py
++++ b/src/credit_warning/features.py
+@@ -0,0 +1,77 @@
++from __future__ import annotations
++import numpy as np
++import pandas as pd
++
++FEATURE_COLUMNS = [
++    "hyg_return_5d","hyg_volatility_20d","hyg_negative_share_10d",
++    "hy_ig_gap_5d","hy_ig_gap_20d","hy_treasury_gap_10d",
++    "equity_adjusted_hyg_5d","hyg_spy_correlation_20d","hyg_ief_correlation_20d",
++    "cross_asset_dispersion_5d","vix_zscore_252d","vix_change_5d",
++]
++
++def log_returns(prices: pd.DataFrame) -> pd.DataFrame:
++    return np.log(prices / prices.shift(1))
++
++def trailing_log_return(r: pd.Series, k: int) -> pd.Series:
++    return r.rolling(k, min_periods=k).sum()
++
++def _equity_adjusted(hyg_r: pd.Series, spy_r: pd.Series, hyg5: pd.Series, spy5: pd.Series) -> pd.Series:
++    # For date t, regress on exactly t-64..t-5: shift returns by 5, then take 60 rows.
++    x = spy_r.shift(5)
++    y = hyg_r.shift(5)
++    mx = x.rolling(60, min_periods=60).mean()
++    my = y.rolling(60, min_periods=60).mean()
++    mxy = (x*y).rolling(60, min_periods=60).mean()
++    mx2 = (x*x).rolling(60, min_periods=60).mean()
++    cov = mxy - mx*my
++    var = mx2 - mx*mx
++    beta = cov / var
++    alpha = my - beta*mx
++    return hyg5 - (5.0*alpha + beta*spy5)
++
++def _dispersion(prices_r: pd.DataFrame, ret5: pd.DataFrame) -> pd.Series:
++    # sigma uses 60 daily returns ending at t-5, i.e. t-64..t-5.
++    sigma = prices_r.shift(5).rolling(60, min_periods=60).std(ddof=1)
++    standardized = ret5 / (sigma*np.sqrt(5.0))
++    return standardized.std(axis=1, ddof=1)
++
++def make_features(aligned: pd.DataFrame, vix_series: str="VIXCLS") -> pd.DataFrame:
++    px = aligned[["HYG","LQD","IEF","SPY"]].astype(float)
++    r = log_returns(px)
++    r5 = r.rolling(5, min_periods=5).sum()
++    r10 = r.rolling(10, min_periods=10).sum()
++    r20 = r.rolling(20, min_periods=20).sum()
++    f = pd.DataFrame(index=aligned.index)
++    f["hyg_return_5d"] = r5["HYG"]
++    f["hyg_volatility_20d"] = r["HYG"].rolling(20, min_periods=20).std(ddof=1)*np.sqrt(252.0)
++    f["hyg_negative_share_10d"] = (r["HYG"] < 0).astype(float).where(r["HYG"].notna()).rolling(10,min_periods=10).mean()
++    f["hy_ig_gap_5d"] = r5["HYG"] - r5["LQD"]
++    f["hy_ig_gap_20d"] = r20["HYG"] - r20["LQD"]
++    f["hy_treasury_gap_10d"] = r10["HYG"] - r10["IEF"]
++    f["equity_adjusted_hyg_5d"] = _equity_adjusted(r["HYG"],r["SPY"],r5["HYG"],r5["SPY"])
++    f["hyg_spy_correlation_20d"] = r["HYG"].rolling(20,min_periods=20).corr(r["SPY"])
++    f["hyg_ief_correlation_20d"] = r["HYG"].rolling(20,min_periods=20).corr(r["IEF"])
++    f["cross_asset_dispersion_5d"] = _dispersion(r, r5)
++    v = aligned[vix_series].astype(float)
++    benchmark_mean = v.shift(1).rolling(252,min_periods=252).mean()
++    benchmark_std = v.shift(1).rolling(252,min_periods=252).std(ddof=1)
++    f["vix_zscore_252d"] = (v-benchmark_mean)/benchmark_std
++    f["vix_change_5d"] = np.log(v/v.shift(5))
++    return f[FEATURE_COLUMNS]
++
++def feature_dictionary() -> pd.DataFrame:
++    rows = [
++      ("hyg_return_5d","sum of HYG daily log returns over t-4..t","log return","negative","5 returns"),
++      ("hyg_volatility_20d","std of HYG daily log returns t-19..t * sqrt(252)","annualized log-return volatility","positive","20 returns"),
++      ("hyg_negative_share_10d","mean 1{HYG daily log return < 0} over t-9..t","share","positive","10 returns"),
++      ("hy_ig_gap_5d","HYG 5d log return - LQD 5d log return","log-return gap","negative","5 returns"),
++      ("hy_ig_gap_20d","HYG 20d log return - LQD 20d log return","log-return gap","negative","20 returns"),
++      ("hy_treasury_gap_10d","HYG 10d log return - IEF 10d log return","log-return gap","negative","10 returns"),
++      ("equity_adjusted_hyg_5d","HYG 5d return - (5*alpha + beta*SPY 5d); alpha,beta estimated on t-64..t-5","residual log return","negative","65 rows"),
++      ("hyg_spy_correlation_20d","correlation of HYG and SPY daily log returns t-19..t","correlation","context-dependent","20 returns"),
++      ("hyg_ief_correlation_20d","correlation of HYG and IEF daily log returns t-19..t","correlation","context-dependent","20 returns"),
++      ("cross_asset_dispersion_5d","cross-sectional sample std of each asset 5d return/(60d sigma ending t-5 * sqrt(5))","standardized dispersion","positive","65 rows"),
++      ("vix_zscore_252d","(VIX[t]-mean of t-252..t-1)/std of t-252..t-1","z-score","positive","252 prior observations"),
++      ("vix_change_5d","log(VIX[t]/VIX[t-5])","log change","positive","5 rows"),
++    ]
++    return pd.DataFrame(rows,columns=["feature","formula","units","expected_sign","required_lookback"])
+--- a/src/credit_warning/labels.py
++++ b/src/credit_warning/labels.py
+@@ -0,0 +1,31 @@
++from __future__ import annotations
++import numpy as np
++import pandas as pd
++
++def future_trough(prices: pd.Series, horizon: int=10) -> pd.DataFrame:
++    p = prices.astype(float)
++    n=len(p)
++    vals=np.full(n,np.nan); dates=np.full(n,np.datetime64("NaT"),dtype="datetime64[ns]")
++    end_dates=np.full(n,np.datetime64("NaT"),dtype="datetime64[ns]")
++    arr=p.to_numpy(); idx=p.index.to_numpy(dtype="datetime64[ns]")
++    for i in range(n-horizon):
++        future=arr[i+1:i+horizon+1]/arr[i]-1.0
++        j=int(np.argmin(future))
++        vals[i]=future[j]; dates[i]=idx[i+1+j]; end_dates[i]=idx[i+horizon]
++    return pd.DataFrame({"future_trough_return_10d":vals,
++                         "future_trough_date_10d":pd.to_datetime(dates),
++                         "label_end_date":pd.to_datetime(end_dates)},index=p.index)
++
++def initial_stress_cutoff(frame: pd.DataFrame, train_end: str, quantile: float=0.10) -> float:
++    eligible=frame.loc[(frame.index<=pd.Timestamp(train_end)) &
++                       frame["future_trough_return_10d"].notna() &
++                       (frame["label_end_date"]<=pd.Timestamp(train_end)),
++                       "future_trough_return_10d"]
++    if eligible.empty: raise ValueError("No eligible initial-training labels.")
++    return float(eligible.quantile(quantile))
++
++def add_stress_label(frame: pd.DataFrame, cutoff: float) -> pd.DataFrame:
++    out=frame.copy()
++    out["stress_label"]=np.where(out["future_trough_return_10d"].notna(),
++                                 (out["future_trough_return_10d"]<=cutoff).astype(int),np.nan)
++    return out
+--- a/src/credit_warning/splits.py
++++ b/src/credit_warning/splits.py
+@@ -0,0 +1,17 @@
++from __future__ import annotations
++import pandas as pd
++
++def chronological_samples(frame: pd.DataFrame, periods: dict):
++    # Boundary rule: the complete label horizon must remain within its own period.
++    specs={
++      "training": (None, periods["train_end"]),
++      "validation": (periods["validation_start"], periods["validation_end"]),
++      "test": (periods["test_start"], periods["test_end"]),
++    }
++    out={}
++    for name,(start,end) in specs.items():
++        mask=frame.index<=pd.Timestamp(end)
++        if start is not None: mask &= frame.index>=pd.Timestamp(start)
++        mask &= frame["label_end_date"].notna() & (frame["label_end_date"]<=pd.Timestamp(end))
++        out[name]=frame.loc[mask].copy()
++    return out
+--- a/tests/test_features.py
++++ b/tests/test_features.py
+@@ -0,0 +1,70 @@
++import sys
++from pathlib import Path
++import numpy as np, pandas as pd
++ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT/"src"))
++from credit_warning.features import log_returns, make_features
++
++def synthetic(n=320):
++    idx=pd.bdate_range("2020-01-01",periods=n)
++    x=np.arange(n,dtype=float)
++    # deterministic non-degenerate positive prices and VIX
++    return pd.DataFrame({
++      "HYG":100*np.exp(.001*x + .0003*np.sin(x)),
++      "LQD":90*np.exp(.0006*x + .0002*np.cos(x)),
++      "IEF":80*np.exp(.0002*x + .00015*np.sin(x*.7)),
++      "SPY":200*np.exp(.0012*x + .0004*np.cos(x*.5)),
++      "VIXCLS":20+2*np.sin(x/13)+.01*x},index=idx)
++
++def test_log_return_hand_calculated():
++    p=pd.DataFrame({"HYG":[100.,110.,121.]},index=pd.bdate_range("2020-01-01",periods=3))
++    got=log_returns(p)["HYG"].iloc[1:].to_numpy()
++    assert np.allclose(got,[np.log(1.1),np.log(1.1)])
++
++def test_return_features_and_gaps_exact():
++    d=synthetic(); f=make_features(d); r=np.log(d[["HYG","LQD","IEF","SPY"]]/d[["HYG","LQD","IEF","SPY"]].shift(1))
++    t=d.index[100]
++    assert np.isclose(f.loc[t,"hyg_return_5d"],r["HYG"].loc[:t].tail(5).sum())
++    assert np.isclose(f.loc[t,"hyg_volatility_20d"],r["HYG"].loc[:t].tail(20).std(ddof=1)*np.sqrt(252))
++    assert np.isclose(f.loc[t,"hyg_negative_share_10d"],(r["HYG"].loc[:t].tail(10)<0).mean())
++    assert np.isclose(f.loc[t,"hy_ig_gap_5d"],r["HYG"].loc[:t].tail(5).sum()-r["LQD"].loc[:t].tail(5).sum())
++    assert np.isclose(f.loc[t,"hy_ig_gap_20d"],r["HYG"].loc[:t].tail(20).sum()-r["LQD"].loc[:t].tail(20).sum())
++    assert np.isclose(f.loc[t,"hy_treasury_gap_10d"],r["HYG"].loc[:t].tail(10).sum()-r["IEF"].loc[:t].tail(10).sum())
++
++def test_equity_adjusted_hyg_synthetic_linear_relationship():
++    n=150; idx=pd.bdate_range("2020-01-01",periods=n)
++    spy_r=.001+.0005*np.sin(np.arange(n-1))
++    alpha=.0002; beta=.7; hyg_r=alpha+beta*spy_r
++    spy=100*np.r_[1,np.exp(np.cumsum(spy_r))]
++    hyg=100*np.r_[1,np.exp(np.cumsum(hyg_r))]
++    d=pd.DataFrame({"HYG":hyg,"SPY":spy,"LQD":hyg*.9,"IEF":spy*.8,"VIXCLS":20+np.arange(n)*.01},index=idx)
++    f=make_features(d); t=idx[100]
++    assert abs(f.loc[t,"equity_adjusted_hyg_5d"]) < 1e-12
++
++def test_correlations_exact():
++    d=synthetic(); f=make_features(d); r=np.log(d[["HYG","LQD","IEF","SPY"]]/d[["HYG","LQD","IEF","SPY"]].shift(1)); t=d.index[100]
++    assert np.isclose(f.loc[t,"hyg_spy_correlation_20d"],r["HYG"].loc[:t].tail(20).corr(r["SPY"].loc[:t].tail(20)))
++    assert np.isclose(f.loc[t,"hyg_ief_correlation_20d"],r["HYG"].loc[:t].tail(20).corr(r["IEF"].loc[:t].tail(20)))
++
++def test_cross_asset_dispersion_known_formula():
++    d=synthetic(); f=make_features(d); r=np.log(d[["HYG","LQD","IEF","SPY"]]/d[["HYG","LQD","IEF","SPY"]].shift(1)); t=d.index[100]; pos=d.index.get_loc(t)
++    vals=[]
++    for a in ["HYG","LQD","IEF","SPY"]:
++        ret5=r[a].iloc[pos-4:pos+1].sum()
++        sigma=r[a].iloc[pos-64:pos-4].std(ddof=1)
++        vals.append(ret5/(sigma*np.sqrt(5)))
++    assert np.isclose(f.loc[t,"cross_asset_dispersion_5d"],np.std(vals,ddof=1))
++
++def test_vix_zscore_excludes_current_and_vix_change():
++    d=synthetic(); f=make_features(d); t=d.index[280]; pos=d.index.get_loc(t)
++    prior=d["VIXCLS"].iloc[pos-252:pos]
++    expected=(d.loc[t,"VIXCLS"]-prior.mean())/prior.std(ddof=1)
++    assert np.isclose(f.loc[t,"vix_zscore_252d"],expected)
++    assert np.isclose(f.loc[t,"vix_change_5d"],np.log(d["VIXCLS"].iloc[pos]/d["VIXCLS"].iloc[pos-5]))
++
++def test_rolling_boundaries():
++    d=synthetic(); f=make_features(d)
++    assert f["hyg_return_5d"].first_valid_index()==d.index[5]
++    assert f["hyg_volatility_20d"].first_valid_index()==d.index[20]
++    assert f["equity_adjusted_hyg_5d"].first_valid_index()==d.index[65]
++    assert f["cross_asset_dispersion_5d"].first_valid_index()==d.index[65]
++    assert f["vix_zscore_252d"].first_valid_index()==d.index[252]
+--- a/tests/test_labels.py
++++ b/tests/test_labels.py
+@@ -0,0 +1,27 @@
++import sys
++from pathlib import Path
++import numpy as np, pandas as pd
++ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT/"src"))
++from credit_warning.labels import future_trough, initial_stress_cutoff, add_stress_label
++
++def test_future_trough_uses_only_following_10_rows_and_dates():
++    idx=pd.bdate_range("2020-01-01",periods=15)
++    p=pd.Series([100,99,98,97,96,95,94,93,92,91,90,1,1,1,1],index=idx,dtype=float)
++    out=future_trough(p,10)
++    assert np.isclose(out.iloc[0]["future_trough_return_10d"],-.10)
++    assert out.iloc[0]["future_trough_date_10d"]==idx[10]
++    assert out.iloc[0]["label_end_date"]==idx[10]
++    assert pd.isna(out.iloc[5]["future_trough_return_10d"])
++
++def test_initial_cutoff_only_eligible_initial_training():
++    idx=pd.bdate_range("2020-01-01",periods=6)
++    f=pd.DataFrame({"future_trough_return_10d":[-.1,-.2,-.3,-.9,-.8,-.7],
++                    "label_end_date":[idx[1],idx[2],idx[3],idx[4],idx[5],idx[5]]},index=idx)
++    cutoff=initial_stress_cutoff(f,str(idx[3].date()),.10)
++    assert np.isclose(cutoff,np.quantile([-.1,-.2,-.3],.10))
++
++def test_stress_label_numeric_cutoff():
++    idx=pd.bdate_range("2020-01-01",periods=3)
++    f=pd.DataFrame({"future_trough_return_10d":[-.2,-.1,np.nan]},index=idx)
++    o=add_stress_label(f,-.15)
++    assert o["stress_label"].iloc[0]==1 and o["stress_label"].iloc[1]==0 and pd.isna(o["stress_label"].iloc[2])
+--- a/tests/test_splits.py
++++ b/tests/test_splits.py
+@@ -0,0 +1,16 @@
++import sys
++from pathlib import Path
++import pandas as pd
++ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT/"src"))
++from credit_warning.splits import chronological_samples
++
++def test_chronological_split_and_label_boundary_exclusion():
++    idx=pd.to_datetime(["2016-12-29","2016-12-30","2017-01-02","2020-12-30","2020-12-31","2021-01-04"])
++    f=pd.DataFrame({"label_end_date":pd.to_datetime(["2016-12-30","2017-01-05","2017-01-16","2020-12-31","2021-01-08","2021-01-15"])},index=idx)
++    periods={"train_end":"2016-12-31","validation_start":"2017-01-01","validation_end":"2020-12-31","test_start":"2021-01-01","test_end":"2021-12-31"}
++    s=chronological_samples(f,periods)
++    assert list(s["training"].index)==[idx[0]]
++    assert list(s["validation"].index)==[idx[2],idx[3]]
++    assert list(s["test"].index)==[idx[5]]
++    for name,end in [("training","2016-12-31"),("validation","2020-12-31"),("test","2021-12-31")]:
++        assert (s[name]["label_end_date"]<=pd.Timestamp(end)).all()

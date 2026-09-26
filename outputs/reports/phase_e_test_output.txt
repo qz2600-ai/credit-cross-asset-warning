@@ -1,0 +1,11 @@
+$ python -m pytest -q
+...................................                                      [100%]
+=============================== warnings summary ===============================
+tests/test_phase_c.py::test_scaler_uses_training_rows_only
+tests/test_phase_c.py::test_fixed_seed_reproduces_logistic_results
+tests/test_phase_c.py::test_fixed_seed_reproduces_logistic_results
+  /opt/pyvenv/lib/python3.13/site-packages/sklearn/linear_model/_logistic.py:1135: FutureWarning: 'penalty' was deprecated in version 1.8 and will be removed in 1.10. To avoid this warning, leave 'penalty' set to its default value and use 'l1_ratio' or 'C' instead. Use l1_ratio=0 instead of penalty='l2', l1_ratio=1 instead of penalty='l1', and C=np.inf instead of penalty=None.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+35 passed, 3 warnings in 7.70s

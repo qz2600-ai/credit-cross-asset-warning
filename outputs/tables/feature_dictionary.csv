@@ -1,0 +1,13 @@
+feature,formula,units,expected_sign,required_lookback
+hyg_return_5d,sum of HYG daily log returns over t-4..t,log return,negative,5 returns
+hyg_volatility_20d,std of HYG daily log returns t-19..t * sqrt(252),annualized log-return volatility,positive,20 returns
+hyg_negative_share_10d,mean 1{HYG daily log return < 0} over t-9..t,share,positive,10 returns
+hy_ig_gap_5d,HYG 5d log return - LQD 5d log return,log-return gap,negative,5 returns
+hy_ig_gap_20d,HYG 20d log return - LQD 20d log return,log-return gap,negative,20 returns
+hy_treasury_gap_10d,HYG 10d log return - IEF 10d log return,log-return gap,negative,10 returns
+equity_adjusted_hyg_5d,"HYG 5d return - (5*alpha + beta*SPY 5d); alpha,beta estimated on t-64..t-5",residual log return,negative,65 rows
+hyg_spy_correlation_20d,correlation of HYG and SPY daily log returns t-19..t,correlation,context-dependent,20 returns
+hyg_ief_correlation_20d,correlation of HYG and IEF daily log returns t-19..t,correlation,context-dependent,20 returns
+cross_asset_dispersion_5d,cross-sectional sample std of each asset 5d return/(60d sigma ending t-5 * sqrt(5)),standardized dispersion,positive,65 rows
+vix_zscore_252d,(VIX[t]-mean of t-252..t-1)/std of t-252..t-1,z-score,positive,252 prior observations
+vix_change_5d,log(VIX[t]/VIX[t-5]),log change,positive,5 rows

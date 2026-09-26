@@ -1,0 +1,3 @@
+# Limitations
+
+The target is an ETF future-trough label, not corporate default. Overlapping 10-day outcomes create dependent daily labels; the test has only 17 distinct stress episodes, and the three largest contain 50.9% of positive-label days. Results depend on the fixed sample, feature definitions, training cutoff, and locked thresholds. Calibration and threshold metrics can differ from ranking metrics. The analysis is observational and does not establish causality or investment profitability.

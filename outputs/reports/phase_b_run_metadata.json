@@ -1,0 +1,53 @@
+{
+  "phase": "B",
+  "phase_a_gate_passed": true,
+  "models_constructed": false,
+  "stress_cutoff": -0.03024424670177883,
+  "usable_feature_start": "2008-04-10",
+  "usable_feature_end": "2026-09-18",
+  "sample_rows": {
+    "training": 2189,
+    "validation": 997,
+    "test": 1424
+  },
+  "runtime_seconds": 0.22137832641601562,
+  "python": "3.13.5",
+  "configuration": {
+    "project": {
+      "random_seed": 42,
+      "analysis_start": "2007-04-04",
+      "analysis_end": "2026-09-18"
+    },
+    "assets": {
+      "target": "HYG",
+      "etfs": [
+        "HYG",
+        "LQD",
+        "IEF",
+        "SPY"
+      ],
+      "vix_series": "VIXCLS"
+    },
+    "periods": {
+      "train_end": "2016-12-31",
+      "validation_start": "2017-01-01",
+      "validation_end": "2020-12-31",
+      "test_start": "2021-01-01",
+      "test_end": "2026-09-18"
+    },
+    "target": {
+      "horizon_days": 10,
+      "training_quantile": 0.1
+    },
+    "training": {
+      "refit_frequency_days": 21,
+      "primary_window": "expanding",
+      "robustness_window_years": 5
+    },
+    "evaluation": {
+      "target_alert_rate": 0.1,
+      "bootstrap_block_days": 20,
+      "bootstrap_repetitions": 1000
+    }
+  }
+}

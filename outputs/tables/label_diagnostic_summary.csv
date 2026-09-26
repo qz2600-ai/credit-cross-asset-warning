@@ -1,0 +1,4 @@
+split,distinct_stress_episodes,first_eligible_labeled_date,last_eligible_labeled_date,positive_labels,positive_labels_in_three_largest_episodes,pct_positive_labels_in_three_largest_episodes
+training,42,2008-04-10,2016-12-15,219,47,21.461187214611872
+validation,8,2017-01-03,2020-12-16,41,31,75.60975609756098
+test,17,2021-01-04,2026-09-03,57,29,50.87719298245614

@@ -1,0 +1,13 @@
+,missing_count
+hyg_return_5d,5
+hyg_volatility_20d,20
+hyg_negative_share_10d,10
+hy_ig_gap_5d,5
+hy_ig_gap_20d,20
+hy_treasury_gap_10d,10
+equity_adjusted_hyg_5d,65
+hyg_spy_correlation_20d,20
+hyg_ief_correlation_20d,20
+cross_asset_dispersion_5d,65
+vix_zscore_252d,252
+vix_change_5d,5

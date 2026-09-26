@@ -1,0 +1,3 @@
+# Reproducibility
+
+Run from the repository root with the pinned environment. Phase D consumes the cached Phase B derived data and the approved Phase C locked configuration. Configuration SHA-256: `aabc05d34eb407e1396e22da6bdbd6ea296bc3ec200aa61de6f565c7a3c15cef`. Derived-data SHA-256: `5e46cc69fa08ab53bc462baeb65795ee66b62ea4aca63feb3215e79d2bb6ea2e`. Phase-C lock SHA-256: `57e15ba4d28b94b54f2448288c7b5765e86f28ab6d9cb96d2354ececebb98038`. Random seed is 42; test refits occur every 21 trading days; bootstrap uses 1,000 paired replications with 20-row blocks. Exact refit inputs and scaler statistics are in `outputs/tables/test_refit_audit.csv`.

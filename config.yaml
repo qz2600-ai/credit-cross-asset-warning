@@ -1,0 +1,30 @@
+project:
+  random_seed: 42
+  analysis_start: "2007-04-04"
+  analysis_end: "2026-09-18"
+
+assets:
+  target: "HYG"
+  etfs: ["HYG", "LQD", "IEF", "SPY"]
+  vix_series: "VIXCLS"
+
+periods:
+  train_end: "2016-12-31"
+  validation_start: "2017-01-01"
+  validation_end: "2020-12-31"
+  test_start: "2021-01-01"
+  test_end: "2026-09-18"
+
+target:
+  horizon_days: 10
+  training_quantile: 0.10
+
+training:
+  refit_frequency_days: 21
+  primary_window: "expanding"
+  robustness_window_years: 5
+
+evaluation:
+  target_alert_rate: 0.10
+  bootstrap_block_days: 20
+  bootstrap_repetitions: 1000

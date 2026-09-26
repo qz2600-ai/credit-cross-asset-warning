@@ -1,0 +1,3 @@
+# Methodology
+
+Locked Phase D uses the unchanged 12 Phase B features and 10-trading-day future-trough stress label. M0 is negative HYG 5-day return; M1 is the three-feature standardized L2 logistic model (C=0.1); M2 is the 12-feature standardized L2 logistic model (C=0.1); M3 is the prescribed 500-tree random forest (depth 3, minimum leaf 100). Test inference is 21-trading-day walk-forward. A row can train a block only when its label_end_date is strictly before the block start. Logistic scalers are fitted inside each training refit. Locked Phase C thresholds are used unchanged. Primary comparison is M2 versus M1 by test PR-AUC, with a paired 1,000-replication 20-trading-day moving-block bootstrap.

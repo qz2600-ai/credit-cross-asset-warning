@@ -1,0 +1,98 @@
+--- a/src/credit_warning/data.py
++++ b/src/credit_warning/data.py
+@@ -161,10 +161,15 @@
+     represented = {k: bool(len(aligned.loc[a:b])) for k,(a,b) in stress_ranges.items()}
+     criteria = {
+         "HYG history reaches 2007": bool(not etfs["HYG"].dropna().empty and etfs["HYG"].dropna().index.min().year <= 2007),
+-        "all comparison ETFs cover modeling sample": all(
+-            (not etfs[t].dropna().empty and etfs[t].dropna().index.min() <= pd.Timestamp(analysis_start)
+-             and etfs[t].dropna().index.max() >= pd.Timestamp(analysis_end))
+-            for t in etf_names
++        "all comparison ETFs cover HYG actual observations": (
++            False if etfs["HYG"].dropna().empty else all(
++                (
++                    not etfs[t].dropna().empty
++                    and etfs[t].dropna().index.min() <= etfs["HYG"].dropna().index.min()
++                    and etfs[t].dropna().index.max() >= etfs["HYG"].dropna().index.max()
++                )
++                for t in etf_names if t != "HYG"
++            )
+         ),
+         "adjusted-price fields available and documented": True,
+         "no duplicate dates": bool(audit["duplicate_dates"].eq(0).all()),
+--- a/scripts/run_pipeline.py
++++ b/scripts/run_pipeline.py
+@@ -1,5 +1,7 @@
+ from pathlib import Path
+ import argparse, json, platform, sys, time, yaml
++import numpy as np
++import pandas as pd
+ from importlib.metadata import version, PackageNotFoundError
+ ROOT = Path(__file__).resolve().parents[1]
+ sys.path.insert(0, str(ROOT / "src"))
+@@ -36,6 +38,23 @@
+              "## Gate criteria",""]
+     lines += [f"- [{'x' if ok else ' '}] {name}" for name,ok in criteria.items()]
+     lines += ["","## Stress-period representation",""] + [f"- {k}: {v}" for k,v in represented.items()]
++    vix_series = cfg["assets"]["vix_series"]
++    vix_valid = vix[vix_series].dropna().loc[cfg["project"]["analysis_start"]:cfg["project"]["analysis_end"]]
++    vix_log_change = np.log(vix_valid / vix_valid.shift(1))
++    vix_review = pd.DataFrame({
++        "date": vix_log_change.index,
++        "vix_close": vix_valid.values,
++        "daily_log_change": vix_log_change.values,
++        "abs_daily_log_change": vix_log_change.abs().values,
++    }).dropna().nlargest(10, "abs_daily_log_change")
++    vix_review["daily_pct_change"] = np.expm1(vix_review["daily_log_change"]) * 100.0
++    lines += [
++        "","## Largest VIX daily changes","",
++        "The 20% absolute daily log-return threshold is diagnostic only. "
++        "Valid VIX observations are retained as observed; none are removed or winsorized.",
++        "",
++        vix_review[["date","vix_close","daily_log_change","daily_pct_change"]].to_markdown(index=False),
++    ]
+     lines += ["","## Series audit","", audit.to_markdown(index=False)]
+     (out_reports/"data_quality.md").write_text("\n".join(lines))
+     raw_paths = [raw/f"{x}.csv" for x in [*cfg["assets"]["etfs"], cfg["assets"]["vix_series"]]]
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -9,3 +9,4 @@
+ pandas-datareader==0.10.0
+ pytest==8.4.2
+ jupyter==1.1.1
++tabulate==0.10.0
+--- a/tests/test_data.py
++++ b/tests/test_data.py
+@@ -22,3 +22,32 @@
+     _, aligned, _, _, _ = audit_and_align(
+         etf,vix,["HYG","LQD","IEF","SPY"],"VIXCLS","2007-04-04","2026-09-18")
+     assert idx[1] not in aligned.index
++
++
++def _coverage_fixture():
++    idx = pd.bdate_range("2007-04-02", "2007-04-20")
++    etf = pd.DataFrame({x: 100.0 + np.arange(len(idx)) for x in ["HYG","LQD","IEF","SPY"]}, index=idx)
++    # Configured start predates HYG's first actual observation.
++    etf.loc[idx[idx < pd.Timestamp("2007-04-11")], "HYG"] = np.nan
++    vix = pd.DataFrame({"VIXCLS": 15.0 + np.arange(len(idx)) / 10.0}, index=idx)
++    return idx, etf, vix
++
++def test_comparison_etfs_cover_hyg_actual_observations_passes():
++    idx, etf, vix = _coverage_fixture()
++    _, _, _, _, criteria = audit_and_align(
++        etf, vix, ["HYG","LQD","IEF","SPY"], "VIXCLS", "2007-04-04", "2007-04-20")
++    assert criteria["all comparison ETFs cover HYG actual observations"]
++
++def test_comparison_etf_starting_after_hyg_fails():
++    idx, etf, vix = _coverage_fixture()
++    etf.loc[idx[idx <= pd.Timestamp("2007-04-11")], "LQD"] = np.nan
++    _, _, _, _, criteria = audit_and_align(
++        etf, vix, ["HYG","LQD","IEF","SPY"], "VIXCLS", "2007-04-04", "2007-04-20")
++    assert not criteria["all comparison ETFs cover HYG actual observations"]
++
++def test_comparison_etf_ending_before_hyg_fails():
++    idx, etf, vix = _coverage_fixture()
++    etf.loc[idx[-1], "IEF"] = np.nan
++    _, _, _, _, criteria = audit_and_align(
++        etf, vix, ["HYG","LQD","IEF","SPY"], "VIXCLS", "2007-04-04", "2007-04-20")
++    assert not criteria["all comparison ETFs cover HYG actual observations"]

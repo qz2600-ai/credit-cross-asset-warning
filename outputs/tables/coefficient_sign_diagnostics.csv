@@ -1,0 +1,16 @@
+model,feature,expected_sign,median_coefficient,sign_reversals_across_refits,median_sign_economically_unexpected
+m1,hyg_negative_share_10d,positive,-0.11083670647123381,0,True
+m1,hyg_return_5d,negative,-0.17263987503714118,0,False
+m1,hyg_volatility_20d,positive,1.021856949161772,0,False
+m2,cross_asset_dispersion_5d,positive,-0.13464295165933599,0,True
+m2,equity_adjusted_hyg_5d,negative,-0.06732358459738255,3,False
+m2,hy_ig_gap_20d,negative,0.23705028837969666,0,True
+m2,hy_ig_gap_5d,negative,0.012468631673171651,5,True
+m2,hy_treasury_gap_10d,negative,-0.2716898943759518,0,False
+m2,hyg_ief_correlation_20d,context-dependent,-0.17409718539194685,6,False
+m2,hyg_negative_share_10d,positive,-0.2454409656832801,0,True
+m2,hyg_return_5d,negative,0.135505323940221,0,True
+m2,hyg_spy_correlation_20d,context-dependent,-0.16162317428926348,0,False
+m2,hyg_volatility_20d,positive,0.8794055066404379,0,False
+m2,vix_change_5d,positive,0.1983434544764442,0,False
+m2,vix_zscore_252d,positive,0.46953012069133704,0,False

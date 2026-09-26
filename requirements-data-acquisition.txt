@@ -1,0 +1,2 @@
+yfinance==0.2.66
+pandas-datareader==0.10.0

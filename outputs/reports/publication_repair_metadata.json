@@ -1,0 +1,15 @@
+{
+  "repair": "final publication packaging",
+  "locked_results_changed": false,
+  "phase_d_verify_full": {
+    "max_score_discrepancy": 3.3306690738754696e-16,
+    "max_metric_discrepancy": 1.1102230246251565e-16,
+    "rows": 1424
+  },
+  "phase_e_verify_max_discrepancy": 0.0,
+  "pytest": "35 passed, 1 skipped (slow integration test; executed separately via --verify-full), 3 warnings",
+  "requirements_lock_sha256": "f0834ec1b84a77a58937c6f576e5e14a28402cdc1115b1519483ad19081d28d6",
+  "final_test_metrics_sha256": "2bffee1f8d038bb49a4be2476cc161e842bc6632353f41551250f7371b087e0d",
+  "test_predictions_sha256": "1934f5581e622ff6954d31342d81a218b86d3cd7fa91a7670092d1d345a845a6",
+  "official_conclusion": "No reliable improvement"
+}

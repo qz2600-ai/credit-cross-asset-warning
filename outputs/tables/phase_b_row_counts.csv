@@ -1,0 +1,9 @@
+stage,row_count
+aligned_phase_a_rows,4892
+feature_rows_before_complete_case_drop,4892
+rows_after_feature_complete_case_drop,4640
+label_rows_constructed,4892
+complete_feature_rows_with_observable_10d_label,4630
+training_rows_after_boundary_exclusion,2189
+validation_rows_after_boundary_exclusion,997
+test_rows_after_boundary_exclusion,1424

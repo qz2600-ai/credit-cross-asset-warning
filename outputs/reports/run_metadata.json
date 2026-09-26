@@ -1,0 +1,63 @@
+{
+  "phase": "A_passed_ready_for_phase_B",
+  "gate_passed": true,
+  "configuration": {
+    "project": {
+      "random_seed": 42,
+      "analysis_start": "2007-04-04",
+      "analysis_end": "2026-09-18"
+    },
+    "assets": {
+      "target": "HYG",
+      "etfs": [
+        "HYG",
+        "LQD",
+        "IEF",
+        "SPY"
+      ],
+      "vix_series": "VIXCLS"
+    },
+    "periods": {
+      "train_end": "2016-12-31",
+      "validation_start": "2017-01-01",
+      "validation_end": "2020-12-31",
+      "test_start": "2021-01-01",
+      "test_end": "2026-09-18"
+    },
+    "target": {
+      "horizon_days": 10,
+      "training_quantile": 0.1
+    },
+    "training": {
+      "refit_frequency_days": 21,
+      "primary_window": "expanding",
+      "robustness_window_years": 5
+    },
+    "evaluation": {
+      "target_alert_rate": 0.1,
+      "bootstrap_block_days": 20,
+      "bootstrap_repetitions": 1000
+    }
+  },
+  "data_fingerprint_sha256": "4b69d445d0a9ce219eb1109cc85e67ebad0bba3c95c4fb28160b664fee1f3814",
+  "python": "3.13.5",
+  "packages": {
+    "pandas": "2.2.3",
+    "numpy": "2.3.5",
+    "scikit-learn": "1.8.0",
+    "scipy": "1.17.0",
+    "matplotlib": "3.10.8",
+    "seaborn": "0.13.2",
+    "PyYAML": "6.0.3",
+    "yfinance": "not installed",
+    "pandas-datareader": "not installed",
+    "pytest": "9.0.2",
+    "jupyter": "not installed"
+  },
+  "runtime_seconds": 0.07219576835632324,
+  "output_paths": [
+    "/mnt/data/phase_a_review/credit-cross-asset-warning/outputs/reports/data_quality.md",
+    "/mnt/data/phase_a_review/credit-cross-asset-warning/outputs/tables/data_quality.csv"
+  ],
+  "model_settings": null
+}

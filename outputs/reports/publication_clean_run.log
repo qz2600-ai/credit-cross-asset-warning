@@ -1,0 +1,111 @@
+$ python scripts/run_phase_d.py --verify-full
+{
+  "verified_full": true,
+  "max_score_discrepancy": 3.3306690738754696e-16,
+  "max_metric_discrepancy": 1.1102230246251565e-16,
+  "test_rows": 1424
+}
+
+$ python scripts/run_phase_d.py --verify
+{
+  "verified": true,
+  "max_absolute_metric_error": 9.367506770274758e-17,
+  "metric_absolute_errors": {
+    "m1": {
+      "pr_auc": 2.7755575615628914e-17,
+      "roc_auc": 0.0,
+      "brier": 8.326672684688674e-17,
+      "precision": 2.7755575615628914e-17,
+      "recall": 0.0,
+      "f1": 8.326672684688674e-17,
+      "alert_rate": 0.0,
+      "false_alerts_per_year": 0.0,
+      "mean_future_trough_after_alert": 2.6020852139652106e-17,
+      "median_future_trough_after_alert": 0.0,
+      "alert_days": 0.0,
+      "episodes_detected": 0.0,
+      "stress_episode_detection_rate": 0.0,
+      "median_detected_episode_lead_time": 0.0
+    },
+    "m2": {
+      "pr_auc": 8.326672684688674e-17,
+      "roc_auc": 0.0,
+      "brier": 2.7755575615628914e-17,
+      "precision": 6.938893903907228e-17,
+      "recall": 5.551115123125783e-17,
+      "f1": 1.3877787807814457e-17,
+      "alert_rate": 5.551115123125783e-17,
+      "false_alerts_per_year": 0.0,
+      "mean_future_trough_after_alert": 3.469446951953614e-17,
+      "median_future_trough_after_alert": 0.0,
+      "alert_days": 0.0,
+      "episodes_detected": 0.0,
+      "stress_episode_detection_rate": 5.551115123125783e-17,
+      "median_detected_episode_lead_time": 0.0
+    },
+    "m3": {
+      "pr_auc": 6.938893903907228e-17,
+      "roc_auc": 0.0,
+      "brier": 8.326672684688674e-17,
+      "precision": 5.551115123125783e-17,
+      "recall": 0.0,
+      "f1": 5.551115123125783e-17,
+      "alert_rate": 5.551115123125783e-17,
+      "false_alerts_per_year": 0.0,
+      "mean_future_trough_after_alert": 9.367506770274758e-17,
+      "median_future_trough_after_alert": 0.0,
+      "alert_days": 0.0,
+      "episodes_detected": 0.0,
+      "stress_episode_detection_rate": 0.0,
+      "median_detected_episode_lead_time": 0.0
+    },
+    "m0": {
+      "pr_auc": 8.326672684688674e-17,
+      "roc_auc": 5.551115123125783e-17,
+      "brier": 0.0,
+      "precision": 5.551115123125783e-17,
+      "recall": 5.551115123125783e-17,
+      "f1": 5.551115123125783e-17,
+      "alert_rate": 4.85722573273506e-17,
+      "false_alerts_per_year": 0.0,
+      "mean_future_trough_after_alert": 8.153200337090993e-17,
+      "median_future_trough_after_alert": 0.0,
+      "alert_days": 0.0,
+      "episodes_detected": 0.0,
+      "stress_episode_detection_rate": 2.7755575615628914e-17,
+      "median_detected_episode_lead_time": 0.0
+    }
+  }
+}
+
+$ python scripts/run_phase_e.py
+Phase E regenerated
+
+$ python scripts/run_phase_e.py --verify
+{
+  "verified": true,
+  "max_numerical_discrepancy": 0.0,
+  "by_file": {
+    "rolling_5y_test_scores.csv": 0.0,
+    "rolling_5y_robustness.csv": 0.0,
+    "bootstrap_block_sensitivity.csv": 0.0,
+    "equal_alert_budget_diagnostic.csv": 0.0,
+    "stress_by_year.csv": 0.0,
+    "m1_m2_evidence_by_stage.csv": 0.0,
+    "training_feature_correlation.csv": 0.0,
+    "feature_drift.csv": 0.0,
+    "coefficient_sign_diagnostics.csv": 0.0
+  }
+}
+
+$ python -m pytest -q
+.................................s..                                     [100%]
+=============================== warnings summary ===============================
+tests/test_phase_c.py::test_scaler_uses_training_rows_only
+tests/test_phase_c.py::test_fixed_seed_reproduces_logistic_results
+tests/test_phase_c.py::test_fixed_seed_reproduces_logistic_results
+  /opt/pyvenv/lib/python3.13/site-packages/sklearn/linear_model/_logistic.py:1135: FutureWarning: 'penalty' was deprecated in version 1.8 and will be removed in 1.10. To avoid this warning, leave 'penalty' set to its default value and use 'l1_ratio' or 'C' instead. Use l1_ratio=0 instead of penalty='l2', l1_ratio=1 instead of penalty='l1', and C=np.inf instead of penalty=None.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+35 passed, 1 skipped, 3 warnings in 6.66s

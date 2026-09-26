@@ -1,0 +1,2 @@
+comparison,pr_auc_absolute_difference,pr_auc_relative_difference,roc_auc_difference,brier_difference,precision_difference,recall_difference,episode_detection_difference,median_lead_time_difference
+M2_minus_M1,-0.04603135997632535,-0.4053015292580523,-0.12339737419628072,-0.024479939949630658,-0.05770603228547154,-0.5263157894736843,-0.4705882352941176,-1.0

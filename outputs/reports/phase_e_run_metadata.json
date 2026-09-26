@@ -1,0 +1,30 @@
+{
+  "phase": "E",
+  "primary_phase_d_result_unchanged": "No reliable improvement",
+  "phase_d_metrics_sha256": "2bffee1f8d038bb49a4be2476cc161e842bc6632353f41551250f7371b087e0d",
+  "phase_d_predictions_sha256": "1934f5581e622ff6954d31342d81a218b86d3cd7fa91a7670092d1d345a845a6",
+  "phase_b_data_sha256": "5e46cc69fa08ab53bc462baeb65795ee66b62ea4aca63feb3215e79d2bb6ea2e",
+  "phase_c_config_sha256": "57e15ba4d28b94b54f2448288c7b5765e86f28ab6d9cb96d2354ececebb98038",
+  "environment_lock_sha256": "c7e66045f5f4393b29bb7a0e28628ae6c3607dc50ea0ef77eb5523216898e99a",
+  "phase_d_reproduction_verify_max_abs_error": 9.367506770274758e-17,
+  "tests": "35 passed, 3 warnings",
+  "robustness": {
+    "rolling_5y_m1_pr_auc": 0.11304990361946061,
+    "rolling_5y_m2_pr_auc": 0.061945062689775156,
+    "bootstrap_block_days": [
+      10,
+      20,
+      40,
+      60
+    ],
+    "bootstrap_reps": 1000,
+    "seed": 42,
+    "equal_budget_alert_days": 143
+  },
+  "stress_concentration": {
+    "2022_positive_days": 45,
+    "total_positive_days": 57,
+    "2022_episodes": 14,
+    "total_episodes": 17
+  }
+}

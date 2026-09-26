@@ -1,0 +1,22 @@
+Phase D locked final test
+Python: 3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]
+pandas=2.2.3
+numpy=2.3.5
+scikit-learn=1.8.0
+scipy=1.17.0
+matplotlib=3.10.8
+seaborn=0.13.2
+config_sha256=aabc05d34eb407e1396e22da6bdbd6ea296bc3ec200aa61de6f565c7a3c15cef
+derived_data_sha256=5e46cc69fa08ab53bc462baeb65795ee66b62ea4aca63feb3215e79d2bb6ea2e
+phase_c_lock_sha256=57e15ba4d28b94b54f2448288c7b5765e86f28ab6d9cb96d2354ececebb98038
+test_rows=1424
+test_start=2021-01-04
+test_end=2026-09-03
+refit_frequency=21 trading days
+seed=42
+locked_thresholds={"m0": -0.015438, "m1": 0.440215, "m2": 0.531285, "m3": 0.58369}
+locked_hyperparameters=M1 C=.1; M2 C=.1; M3 n_estimators=500 max_depth=3 min_samples_leaf=100
+bootstrap=1000 reps; 20 trading-row blocks; paired M1/M2; seed=42
+bootstrap_discarded_one_class=0
+predeclared_result=No reliable improvement
+pytest=33 passed, 3 warnings

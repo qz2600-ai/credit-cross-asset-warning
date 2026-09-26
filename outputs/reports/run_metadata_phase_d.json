@@ -1,0 +1,39 @@
+{
+  "phase": "D",
+  "locked": true,
+  "test_rows": 1424,
+  "test_start": "2021-01-04",
+  "test_end": "2026-09-03",
+  "models": {
+    "m0": "negative HYG 5d return",
+    "m1": {
+      "C": 0.1
+    },
+    "m2": {
+      "C": 0.1
+    },
+    "m3": {
+      "n_estimators": 500,
+      "max_depth": 3,
+      "min_samples_leaf": 100,
+      "max_features": "sqrt",
+      "class_weight": "balanced_subsample"
+    }
+  },
+  "thresholds": {
+    "m0": -0.015438,
+    "m1": 0.440215,
+    "m2": 0.531285,
+    "m3": 0.58369
+  },
+  "refit_frequency_trading_days": 21,
+  "bootstrap": {
+    "repetitions": 1000,
+    "block_days": 20,
+    "seed": 42
+  },
+  "configuration_fingerprint_sha256": "aabc05d34eb407e1396e22da6bdbd6ea296bc3ec200aa61de6f565c7a3c15cef",
+  "derived_data_fingerprint_sha256": "5e46cc69fa08ab53bc462baeb65795ee66b62ea4aca63feb3215e79d2bb6ea2e",
+  "phase_c_locked_config_fingerprint_sha256": "57e15ba4d28b94b54f2448288c7b5765e86f28ab6d9cb96d2354ececebb98038",
+  "predeclared_interpretation": "No reliable improvement"
+}

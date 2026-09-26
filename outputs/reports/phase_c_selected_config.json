@@ -1,0 +1,21 @@
+{
+  "m1": {
+    "C": 0.1
+  },
+  "m2": {
+    "C": 0.1
+  },
+  "m3": {
+    "max_depth": 3,
+    "min_samples_leaf": 100
+  },
+  "thresholds": {
+    "m0_hyg_return_threshold": -0.015437966200690998,
+    "m1_probability_threshold": 0.4402145923440821,
+    "m2_probability_threshold": 0.5312852567670695,
+    "m3_probability_threshold": 0.5836898288779064
+  },
+  "test_period_loaded_by_phase_c_runner": false,
+  "validation_refit_frequency_trading_days": 21,
+  "purge_trading_days": 10
+}

@@ -1,0 +1,4 @@
+period,boundary_crossing_rows_excluded
+training,10
+validation,10
+test,0

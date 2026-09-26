@@ -1,0 +1,6 @@
+series,source,first_valid,last_valid,hyg_reference_dates,missing_observations,missing_pct,duplicate_dates,nonpositive_values,extreme_abs_log_return_gt_20pct,date_convention,distribution_adjustment
+HYG,Yahoo Finance via yfinance,2007-04-11,2026-09-18,4892,0,0.0,0,0,0,timezone-naive normalized exchange/FRED observation date,Yahoo provider Adj Close (splits and cash distributions)
+LQD,Yahoo Finance via yfinance,2007-04-11,2026-09-18,4892,0,0.0,0,0,0,timezone-naive normalized exchange/FRED observation date,Yahoo provider Adj Close (splits and cash distributions)
+IEF,Yahoo Finance via yfinance,2007-04-11,2026-09-18,4892,0,0.0,0,0,0,timezone-naive normalized exchange/FRED observation date,Yahoo provider Adj Close (splits and cash distributions)
+SPY,Yahoo Finance via yfinance,2007-04-11,2026-09-18,4892,0,0.0,0,0,0,timezone-naive normalized exchange/FRED observation date,Yahoo provider Adj Close (splits and cash distributions)
+VIXCLS,FRED (VIXCLS; source CBOE),2007-04-11,2026-09-18,4892,0,0.0,0,0,118,timezone-naive normalized exchange/FRED observation date,not applicable; daily VIX close
